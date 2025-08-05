@@ -9,7 +9,7 @@ background: linear-gradient(90deg, rgba(80,253,35,1) 0%, rgba(63,255,246,1) 35%,
 	font-family: sans-serif;
 	min-height: 100vh;
 	display: flex;
-	weight:200px;
+	flex-wrap:wrap;
 	justify-content: center;
 	align-items: center;
 	/*By Bytewebster*/
