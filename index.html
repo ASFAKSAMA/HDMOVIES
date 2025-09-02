@@ -1,108 +1,129 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Admin Panel</title>
-  <style>
-    body { font-family: Arial,sans-serif; background:#f4f6f9; padding:20px;}
-    h2 { text-align:center; }
-    .user-card { background:#fff; padding:15px; border-radius:10px; box-shadow:0 4px 12px rgba(0,0,0,.1); margin-bottom:15px; display:flex; align-items:center; gap:15px;}
-    .user-card img { width:80px; height:80px; object-fit:cover; border-radius:6px;}
-    .user-info { flex:1; }
-    .user-info input, .user-info textarea { width:100%; margin:3px 0; padding:5px; border-radius:5px; border:1px solid #ccc;}
-    .btn { padding:5px 10px; border:none; border-radius:5px; cursor:pointer; margin-top:5px;}
-    .btn-edit { background:#28a745; color:#fff; }
-    .btn-delete { background:#dc3545; color:#fff; }
-    .hidden{ display: none; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login / Signup / Black Feed</title>
+<style>
+body{font-family:Arial,sans-serif;margin:0;padding:0;display:flex;justify-content:center;align-items:center;min-height:100vh;flex-direction:column;background:#f4f6f9;}
+.card{background:#fff;padding:20px;border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,.1);width:350px;text-align:center;margin-bottom:20px;}
+input,textarea{width:100%;padding:10px;margin:8px 0;border:1px solid #ccc;border-radius:6px;box-sizing:border-box}
+button{width:100%;padding:10px;margin-top:10px;border:none;border-radius:6px;font-size:15px;cursor:pointer}
+.btn-login{background:#007bff;color:#fff}
+.btn-step{background:#28a745;color:#fff}
+.hidden{display:none !important}
+.error{color:red;font-size:14px;margin-top:5px;}
+.preview{max-width:100px;margin:8px auto;border-radius:6px;display:block;}
+.black-page{width:100vw;height:100vh;background:#000;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+#logoutBtn{margin-top:20px;padding:10px 20px;border:none;border-radius:6px;background:#dc3545;color:#fff;cursor:pointer;}
+</style>
 </head>
 <body>
 
-<h2>Admin Panel - All Users</h2>
-<button id="btn-pass" onclick="showText()">Users</button>
-<div id="usersContainer" class="hidden"></div>
+<!-- LOGIN -->
+<div class="card" id="loginPage">
+  <h2>Login</h2>
+  <input id="loginUsername" placeholder="Username">
+  <input id="loginPassword" type="password" placeholder="Password">
+  <button id="loginBtn" class="btn-login">Login</button>
+  <div id="loginError" class="error hidden">Invalid username or password</div>
+  <p>Don't have an account? <button id="showSignup" style="background:none;border:none;color:#007bff;cursor:pointer;">Sign Up</button></p>
+</div>
+
+<!-- SIGNUP -->
+<div class="card hidden" id="signupPage">
+  <h2>Sign Up</h2>
+  <div id="step1">
+    <input id="signupName" placeholder="Full Name">
+    <button class="btn-step" onclick="nextStep(1)">Next</button>
+  </div>
+  <div id="step2" class="hidden">
+    <input id="signupUsername" placeholder="Username (letters, numbers, _)">
+    <button class="btn-step" onclick="nextStep(2)">Next</button>
+  </div>
+  <div id="step3" class="hidden">
+    <input id="signupPassword" type="password" placeholder="Password">
+    <button class="btn-step" onclick="nextStep(3)">Next</button>
+  </div>
+  <div id="step4" class="hidden">
+    <textarea id="signupBio" placeholder="Bio (optional)" rows="2"></textarea>
+    <button class="btn-step" onclick="nextStep(4)">Next</button>
+  </div>
+  <div id="step5" class="hidden">
+    <input id="signupPhoto" type="file" accept="image/*">
+    <img id="signupPreview" class="preview hidden" alt="Preview">
+    <button class="btn-step" onclick="finishSignup()">Finish</button>
+  </div>
+  <div id="signupError" class="error hidden">Username already exists</div>
+  <button id="backToLogin" style="background:none;border:none;color:#007bff;cursor:pointer;">Back to Login</button>
+</div>
+
+<!-- BLACK FEED -->
+<div id="blackPage" class="black-page hidden">
+  <h1 id="feedTitle">Feed Page</h1>
+  <p id="feedMsg">Welcome!</p>
+  <button id="logoutBtn">Logout</button>
+</div>
 
 <script>
-// ----------- Admin protection -------------
-const adminUsername = "jiya";
-const adminPassword = "Asfak1706";
-
-let inputUsername = prompt("Enter admin username:");
-let inputPassword = prompt("Enter admin password:");
-
-if(inputUsername !== adminUsername || inputPassword !== adminPassword){
-  alert("Access denied! Incorrect username or password.");
-  document.body.innerHTML = "<h2>Access Denied</h2>";
-  throw new Error("Unauthorized access");
-}
-// ----------- End protection ---------------
-
-function showText() {
-  const element = document.getElementById('usersContainer');
-  element.classList.remove('hidden');
-}
-
-// -------------------------
-// GLOBAL VARIABLES
-// -------------------------
 let users = JSON.parse(localStorage.getItem('users') || '[]');
 let signupData = {};
 
-// References
-const signupPage = document.getElementById('signupPage');
-const loginPage = document.getElementById('loginPage');
-const signupPhoto = document.getElementById('signupPhoto');
-const signupPreview = document.getElementById('signupPreview');
-const loginBtn = document.getElementById('loginBtn');
-const loginError = document.getElementById('loginError');
+const loginPage=document.getElementById('loginPage');
+const signupPage=document.getElementById('signupPage');
+const blackPage=document.getElementById('blackPage');
+const loginBtn=document.getElementById('loginBtn');
+const loginError=document.getElementById('loginError');
+const signupPhoto=document.getElementById('signupPhoto');
+const signupPreview=document.getElementById('signupPreview');
+const logoutBtn=document.getElementById('logoutBtn');
 
-// -------------------------
-// SIGNUP PHOTO PREVIEW
-// -------------------------
-if (signupPhoto) {
-  signupPhoto.onchange = e => {
-    if(e.target.files && e.target.files[0]){
-      let reader = new FileReader();
-      reader.onload = ev => {
-        signupPreview.src = ev.target.result;
-        signupPreview.classList.remove('hidden');
-        signupPhoto._base = ev.target.result;
-      };
-      reader.readAsDataURL(e.target.files[0]);
-    }
-  };
-}
+// Page switching
+document.getElementById('showSignup').onclick = ()=>{ loginPage.classList.add('hidden'); signupPage.classList.remove('hidden'); }
+document.getElementById('backToLogin').onclick = ()=>{ signupPage.classList.add('hidden'); loginPage.classList.remove('hidden'); }
 
-// -------------------------
-// SIGNUP STEP-BY-STEP
-// -------------------------
+// Signup photo preview
+signupPhoto.onchange=e=>{
+  if(e.target.files && e.target.files[0]){
+    let reader=new FileReader();
+    reader.onload=ev=>{
+      signupPreview.src=ev.target.result;
+      signupPreview.classList.remove('hidden');
+      signupPhoto._base=ev.target.result;
+    };
+    reader.readAsDataURL(e.target.files[0]);
+  }
+};
+
+// Step-by-step signup
 function nextStep(step){
   switch(step){
     case 1:
-      let name = document.getElementById('signupName').value.trim();
+      let name=document.getElementById('signupName').value.trim();
       if(!name){ alert('Enter name'); return; }
-      signupData.name = name;
+      signupData.name=name;
       document.getElementById('step1').classList.add('hidden');
       document.getElementById('step2').classList.remove('hidden');
       break;
     case 2:
-      let username = document.getElementById('signupUsername').value.trim();
+      let username=document.getElementById('signupUsername').value.trim();
       if(!username){ alert('Enter username'); return; }
-      if(!/^[a-z0-9_]+$/.test(username)){ alert('Only letters, numbers, _ allowed'); return; }
-      if(users.some(u => u.username === username)){ alert('Username exists'); return; }
-      signupData.username = username;
+      if(!/^[A-Za-z0-9_]+$/.test(username)){ alert('Username can contain only letters, numbers, _'); return; }
+      if(users.some(u=>u.username===username)){ alert('Username exists'); return; }
+      signupData.username=username;
       document.getElementById('step2').classList.add('hidden');
       document.getElementById('step3').classList.remove('hidden');
       break;
     case 3:
-      let password = document.getElementById('signupPassword').value;
+      let password=document.getElementById('signupPassword').value;
       if(!password){ alert('Enter password'); return; }
-      signupData.password = password;
+      signupData.password=password;
       document.getElementById('step3').classList.add('hidden');
       document.getElementById('step4').classList.remove('hidden');
       break;
     case 4:
-      let bio = document.getElementById('signupBio').value.trim();
-      signupData.bio = bio;
+      let bio=document.getElementById('signupBio').value.trim();
+      signupData.bio=bio;
       document.getElementById('step4').classList.add('hidden');
       document.getElementById('step5').classList.remove('hidden');
       break;
@@ -110,104 +131,83 @@ function nextStep(step){
 }
 
 function finishSignup(){
-  let photo = signupPhoto._base || '';
-  signupData.photo = photo;
-
-  users.push(signupData);
-  localStorage.setItem('users', JSON.stringify(users));
-  localStorage.setItem('currentUser', JSON.stringify(signupData));
-
-  alert('Signup successful!');
-  window.location.href = 'dashboard.html'; // redirect to dashboard/admin
-}
-
-// -------------------------
-// LOGIN
-// -------------------------
-if(loginBtn){
-  loginBtn.onclick = () => {
-    let username = document.getElementById('loginUsername').value.trim();
-    let password = document.getElementById('loginPassword').value;
-
-    // Refresh users from localStorage to get latest changes
-    users = JSON.parse(localStorage.getItem('users') || '[]');
-
-    let found = users.find(u => u.username === username && u.password === password);
-    if(found){
-      localStorage.setItem('currentUser', JSON.stringify(found));
-      if(loginPage) loginPage.classList.add('hidden');
-      alert('Login successful with updated password!');
-      window.location.href = 'dashboard.html'; // redirect to dashboard/admin
-    } else {
-      if(loginError) loginError.classList.remove('hidden');
-    }
+  let newUser = {
+    name: signupData.name,
+    username: signupData.username,
+    password: signupData.password,
+    bio: signupData.bio,
+    photo: signupPhoto._base || ''
   };
+
+  users.push(newUser);
+  localStorage.setItem('users', JSON.stringify(users));
+  localStorage.setItem('currentUser', JSON.stringify(newUser));
+
+  signupPage.classList.add('hidden');
+  loginPage.classList.add('hidden');
+  blackPage.classList.remove('hidden');
+
+  renderFeed();
+
+  // Clear signup inputs
+  document.getElementById('signupName').value = '';
+  document.getElementById('signupUsername').value = '';
+  document.getElementById('signupPassword').value = '';
+  document.getElementById('signupBio').value = '';
+  signupPhoto.value = '';
+  signupPreview.src = '';
+  signupPreview.classList.add('hidden');
+
+  signupData = {};
 }
 
-// -------------------------
-// DASHBOARD / ADMIN PANEL
-// -------------------------
-const usersContainer = document.getElementById('usersContainer');
-if(usersContainer){
-  function renderUsers() {
-    usersContainer.innerHTML = '';
-    users.forEach((user, index) => {
-      const div = document.createElement('div');
-      div.className = 'user-card';
-      div.innerHTML = `
-        <img src="${user.photo || 'https://via.placeholder.com/80'}" alt="Photo">
-        <div class="user-info">
-          <input type="text" value="${user.name}" placeholder="Full Name" id="name${index}">
-          <input type="text" value="${user.username}" placeholder="Username" id="username${index}">
-          <input type="text" value="${user.password}" placeholder="Password" id="password${index}">
-          <textarea rows="2" placeholder="Bio" id="bio${index}">${user.bio || ''}</textarea>
-          <button class="btn btn-edit" onclick="editUser(${index})">Save</button>
-          <button class="btn btn-delete" onclick="deleteUser(${index})">Delete</button>
-        </div>
-      `;
-      usersContainer.appendChild(div);
-    });
+// Login
+loginBtn.onclick = ()=>{
+  let username=document.getElementById('loginUsername').value.trim();
+  let password=document.getElementById('loginPassword').value.trim();
+
+  users = JSON.parse(localStorage.getItem('users') || '[]');
+  let found=users.find(u=>u.username===username && u.password===password);
+  if(found){
+    localStorage.setItem('currentUser', JSON.stringify(found));
+    loginPage.classList.add('hidden');
+    signupPage.classList.add('hidden');
+    blackPage.classList.remove('hidden');
+    renderFeed();
+
+    // Clear login inputs
+    document.getElementById('loginUsername').value = '';
+    document.getElementById('loginPassword').value = '';
+    loginError.classList.add('hidden');
+  } else {
+    loginError.classList.remove('hidden');
   }
+};
 
-  function editUser(index) {
-    const name = document.getElementById(`name${index}`).value.trim();
-    const username = document.getElementById(`username${index}`).value.trim();
-    const password = document.getElementById(`password${index}`).value;
-    const bio = document.getElementById(`bio${index}`).value.trim();
-
-    if(!name || !username || !password){ alert('Name, username, and password required'); return; }
-
-    if(users.some((u,i)=> u.username === username && i!==index)){
-      alert('Username already exists'); 
-      return; 
-    }
-
-    users[index] = {...users[index], name, username, password, bio};
-    localStorage.setItem('users', JSON.stringify(users));
-
-    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-    if(currentUser && currentUser.username === users[index].username){
-      localStorage.setItem('currentUser', JSON.stringify(users[index]));
-    }
-
-    alert('User updated!');
-    renderUsers();
-  }
-
-  function deleteUser(index) {
-    if(confirm(`Delete user "${users[index].username}"?`)){
-      const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-      if(currentUser && currentUser.username === users[index].username){
-        localStorage.removeItem('currentUser');
-      }
-      users.splice(index,1);
-      localStorage.setItem('users', JSON.stringify(users));
-      renderUsers();
-    }
-  }
-
-  renderUsers();
+// Render minimal black feed
+function renderFeed(){
+  const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+  document.getElementById('feedTitle').textContent = "Feed Page";
+  document.getElementById('feedMsg').textContent = `Welcome, ${currentUser.username}!`;
 }
+
+// Logout
+logoutBtn.onclick = ()=>{
+  localStorage.removeItem('currentUser');
+  loginPage.classList.remove('hidden');
+  blackPage.classList.add('hidden');
+};
+
+// Auto show feed if already logged in
+window.onload = ()=>{
+  const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+  if(currentUser){
+    loginPage.classList.add('hidden');
+    signupPage.classList.add('hidden');
+    blackPage.classList.remove('hidden');
+    renderFeed();
+  }
+};
 </script>
 </body>
-	</html>
+</html>
